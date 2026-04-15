@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Fashion Roulette</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Unbounded:wght@300;400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #f7f3ec; --ink: #2e1a1a; --cream: #ede8dc; --cream2: #e2dccf;
+  --gold: #f04400; --gold-light: #ff9070; --muted: #7a7060; --radius: 16px;
+  --c1: #f04400; --c2: #8b5e4a; --c3: #4a7c6f; --c4: #7a4a8c;
+  --lavender: #a78bca; --pink-star: #e8a0bf;
+}
+html, body { background: var(--bg); color: var(--ink); font-family: 'DM Sans', sans-serif; overflow-x: hidden; }
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 100; opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/%3E%3C/svg%3E");
+  background-size: 128px;
+}
+.page { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px 80px; position: relative; }
+header { text-align: center; margin-bottom: 16px; width: 100%; max-width: 500px; }
+.series-tag { display: inline-block; font-family: 'Unbounded', sans-serif; font-size: 9px; font-weight: 400; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--cream2); border-radius: 99px; padding: 5px 16px; margin-bottom: 20px; }
+h1 { font-family: 'Playfair Display', serif; font-size: clamp(2.6rem, 9vw, 4rem); font-weight: 700; line-height: 0.95; letter-spacing: -0.02em; margin-bottom: 18px; color: var(--ink); }
+h1 span { display: block; color: var(--lavender); font-style: italic; font-weight: 700; font-size: clamp(3rem, 10vw, 4.6rem); }
+.tagline { font-size: 13px; color: var(--muted); line-height: 1.7; max-width: 320px; margin: 0 auto; }
+.cards-area { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 28px; }
+.keyword-card { background: white; border-radius: var(--radius); border: 1px solid var(--cream2); padding: 18px 20px; display: flex; align-items: center; gap: 16px; position: relative; overflow: hidden; }
+.keyword-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 4px 0 0 4px; }
+.card-color::before   { background: var(--c1); }
+.card-texture::before { background: var(--c2); }
+.card-motif::before   { background: var(--c3); }
+.card-effet::before   { background: var(--c4); }
+.card-illus { width: 52px; height: 52px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: var(--bg); }
+.card-illus svg { width: 36px; height: 36px; display: block; }
+.card-meta { flex: 1; min-width: 0; }
+.card-category { font-family: 'Unbounded', sans-serif; font-size: 7.5px; font-weight: 400; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+.card-value { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; letter-spacing: -0.01em; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 10px; }
+.card-value.rolling { animation: rollText 0.4s ease; }
+@keyframes rollText { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.reroll-btn {
+  display: none;
+  background: none;
+  border: 1px solid var(--cream2);
+  border-radius: 8px;
+  padding: 5px 7px;
+  cursor: pointer;
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  line-height: 1;
+}
+.reroll-btn:hover { background: var(--cream); border-color: var(--cream2); transform: rotate(15deg) scale(1.1); }
+.reroll-btn:active { transform: scale(0.9); }
+.reroll-btn.visible { display: inline-flex; align-items: center; justify-content: center; }
+.reroll-btn svg { width: 16px; height: 16px; display: block; }
+.btn-wrap { width: 100%; max-width: 500px; }
+.loading-bar { height: 2px; background: var(--gold); border-radius: 99px; width: 0%; transition: width 1.3s ease; margin-bottom: 12px; opacity: 0; }
+.loading-bar.active { opacity: 1; width: 90%; }
+.btn-roll { width: 100%; padding: 17px; background: var(--ink); color: var(--bg); font-family: 'Unbounded', sans-serif; font-size: 11px; font-weight: 400; letter-spacing: 0.14em; text-transform: uppercase; border: none; border-radius: var(--radius); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px; transition: background 0.2s, transform 0.15s, box-shadow 0.2s; }
+.btn-roll:hover { background: #2e2410; box-shadow: 0 8px 28px rgba(26,18,8,0.2); transform: translateY(-2px); }
+.btn-roll:active { transform: scale(0.98); box-shadow: none; }
+.btn-roll:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+.dice-icon { font-size: 17px; transition: transform 0.3s; }
+.btn-roll:hover .dice-icon { transform: rotate(20deg) scale(1.1); }
+.result-section { width: 100%; max-width: 500px; margin-top: 24px; opacity: 0; transform: translateY(14px); transition: opacity 0.4s, transform 0.4s; pointer-events: none; }
+.result-section.visible { opacity: 1; transform: translateY(0); pointer-events: all; }
+.result-card { background: var(--ink); color: var(--bg); border-radius: var(--radius); padding: 24px 22px; position: relative; overflow: hidden; }
+.result-card::before { content: ''; position: absolute; top: -60px; right: -60px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(201,168,76,0.13) 0%, transparent 70%); pointer-events: none; }
+.result-label { font-family: 'Unbounded', sans-serif; font-size: 8px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.result-label::after { content: ''; flex: 1; height: 1px; background: rgba(201,168,76,0.2); }
+.result-text { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 400; line-height: 1.8; color: rgba(245,240,232,0.9); }
+.result-text strong { color: var(--gold-light); font-style: italic; }
+.result-actions { display: flex; gap: 10px; margin-top: 18px; }
+.btn-action { flex: 1; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.05); color: rgba(245,240,232,0.75); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-action:hover { background: rgba(255,255,255,0.1); color: var(--bg); }
+.history-section { width: 100%; max-width: 500px; margin-top: 32px; }
+.section-title { font-family: 'Unbounded', sans-serif; font-size: 8.5px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+.section-title::after { content: ''; flex: 1; height: 1px; background: var(--cream2); }
+.history-list { display: flex; flex-direction: column; gap: 8px; }
+.history-item { display: flex; flex-wrap: wrap; gap: 6px; background: var(--cream); border-radius: 10px; padding: 10px 14px; border: 1px solid transparent; animation: slideIn 0.3s ease both; }
+@keyframes slideIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+.h-pill { display: inline-flex; align-items: center; gap: 4px; background: white; border: 1px solid var(--cream2); border-radius: 99px; padding: 2px 10px; font-size: 11px; font-weight: 500; color: var(--ink); white-space: nowrap; }
+.h-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.customize-toggle { width: 100%; max-width: 500px; margin-top: 28px; }
+.btn-customize { width: 100%; padding: 13px; background: transparent; border: 1px solid var(--cream2); border-radius: var(--radius); font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background 0.15s, color 0.15s; }
+.btn-customize:hover { background: var(--cream); color: var(--ink); }
+.chevron { display: inline-block; transition: transform 0.3s; font-style: normal; }
+.chevron.open { transform: rotate(180deg); }
+.customize-panel { width: 100%; max-width: 500px; margin-top: 12px; background: white; border: 1px solid var(--cream2); border-radius: var(--radius); overflow: hidden; max-height: 0; transition: max-height 0.4s ease; }
+.customize-panel.open { max-height: 2000px; padding-bottom: 20px; }
+.panel-tabs { display: flex; border-bottom: 1px solid var(--cream2); }
+.tab-btn { flex: 1; padding: 12px 6px; font-family: 'Unbounded', sans-serif; font-size: 7px; font-weight: 400; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); background: transparent; border: none; cursor: pointer; transition: color 0.15s, background 0.15s; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab-btn.active { color: var(--ink); border-bottom-color: var(--ink); background: var(--bg); }
+.tab-btn:hover:not(.active) { background: var(--cream); }
+.tab-content { display: none; padding: 20px 20px 0; }
+.tab-content.active { display: block; }
+.words-grid { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 16px; min-height: 40px; }
+.word-chip { display: inline-flex; align-items: center; gap: 5px; background: var(--cream); border: 1px solid var(--cream2); border-radius: 99px; padding: 5px 10px 5px 12px; font-size: 12.5px; color: var(--ink); }
+.word-chip .del { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 14px; line-height: 1; padding: 0 2px; transition: color 0.15s; }
+.word-chip .del:hover { color: #c23b2a; }
+.add-row { display: flex; gap: 8px; }
+.add-input { flex: 1; padding: 9px 12px; border: 1px solid var(--cream2); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--bg); color: var(--ink); outline: none; }
+.add-input:focus { border-color: #aaa; }
+.add-input::placeholder { color: var(--muted); }
+.btn-add { padding: 9px 16px; background: var(--ink); color: var(--bg); border: none; border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s; flex-shrink: 0; }
+.btn-add:hover { background: #2e2410; }
+.hex-row { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+.hex-input { padding: 9px 12px; border: 1px solid var(--cream2); border-radius: 10px; font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--bg); color: var(--ink); outline: none; width: 100px; }
+.hex-input:focus { border-color: #aaa; }
+.color-preview { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--cream2); flex-shrink: 0; }
+.chip-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); flex-shrink: 0; }
+@keyframes sparkle-pop {
+  0%   { opacity:0; transform: scale(0) rotate(0deg); }
+  40%  { opacity:1; transform: scale(1.2) rotate(20deg); }
+  70%  { opacity:0.8; transform: scale(1) rotate(-10deg); }
+  100% { opacity:0; transform: scale(0.4) rotate(30deg) translateY(-12px); }
+}
+.deco-num { position: absolute; font-family: 'Playfair Display', serif; font-size: 8rem; font-weight: 700; color: var(--cream2); line-height: 1; pointer-events: none; user-select: none; z-index: -1; }
+.deco-left { left: -10px; top: 130px; }
+.deco-right { right: -10px; bottom: 220px; opacity: 0.5; }
+</style>
+</head>
+<body>
+<div class="page">
+  
+  <header>
+    <div style="position:relative; display:inline-block; padding: 0 60px;">
+      <h1>fashion<span>roulette</span></h1>
+      <svg style="position:absolute;top:-8px;right:4px;width:46px;height:46px;opacity:0.85;" viewBox="0 0 46 46" fill="none">
+        <path d="M23 2 L25 19 L42 23 L25 27 L23 44 L21 27 L4 23 L21 19 Z" fill="#e8a0bf"/>
+      </svg>
+      <svg style="position:absolute;top:8px;right:-14px;width:24px;height:24px;opacity:0.6;" viewBox="0 0 24 24" fill="none">
+        <path d="M12 1 L13.5 10 L22 12 L13.5 14 L12 23 L10.5 14 L2 12 L10.5 10 Z" fill="#e8a0bf"/>
+      </svg>
+      <svg style="position:absolute;bottom:4px;left:4px;width:40px;height:40px;opacity:0.8;" viewBox="0 0 40 40" fill="none">
+        <path d="M20 2 L22 17 L37 20 L22 23 L20 38 L18 23 L3 20 L18 17 Z" fill="#e8a0bf"/>
+      </svg>
+      <svg style="position:absolute;bottom:-2px;left:-14px;width:22px;height:22px;opacity:0.5;" viewBox="0 0 22 22" fill="none">
+        <path d="M11 1 L12 9 L20 11 L12 13 L11 21 L10 13 L2 11 L10 9 Z" fill="#e8a0bf"/>
+      </svg>
+    </div>
+    <div class="series-tag" style="margin-top:6px;">✦ By <a href="https://www.youtube.com/@chatcheper" target="_blank" style="color:inherit;text-decoration:underline;text-underline-offset:3px;">Chatcheper</a></div>
+  </header>
+
+  <div class="cards-area">
+    <div class="keyword-card card-color">
+      <div class="card-illus">
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="13" id="swatch-circle" fill="#f04400"/>
+        </svg>
+      </div>
+      <div class="card-meta">
+        <div class="card-category">Couleur</div>
+        <div class="card-value" id="val-color"><span id="val-color-text">— — —</span></div>
+      </div>
+      <button class="reroll-btn" id="reroll-color" onclick="rerollOne('couleur')" title="Relancer"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="3" stroke="#7a7060" stroke-width="1.2" fill="none"/><circle cx="5" cy="5" r="1.2" fill="#7a7060"/><circle cx="11" cy="5" r="1.2" fill="#7a7060"/><circle cx="8" cy="8" r="1.2" fill="#7a7060"/><circle cx="5" cy="11" r="1.2" fill="#7a7060"/><circle cx="11" cy="11" r="1.2" fill="#7a7060"/></svg></button>
+    </div>
+    <div class="keyword-card card-texture">
+      <div class="card-illus" id="illus-texture">
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" id="svg-texture">
+          <line x1="4" y1="9"  x2="32" y2="9"  stroke="#8b5e4a" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="4" y1="16" x2="32" y2="16" stroke="#8b5e4a" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="4" y1="23" x2="32" y2="23" stroke="#8b5e4a" stroke-width="1.4" stroke-linecap="round"/>
+          <line x1="4" y1="30" x2="32" y2="30" stroke="#8b5e4a" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="card-meta">
+        <div class="card-category">Texture</div>
+        <div class="card-value" id="val-texture">— — —</div>
+      </div>
+      <button class="reroll-btn" id="reroll-texture" onclick="rerollOne('texture')" title="Relancer"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="3" stroke="#7a7060" stroke-width="1.2" fill="none"/><circle cx="5" cy="5" r="1.2" fill="#7a7060"/><circle cx="11" cy="5" r="1.2" fill="#7a7060"/><circle cx="8" cy="8" r="1.2" fill="#7a7060"/><circle cx="5" cy="11" r="1.2" fill="#7a7060"/><circle cx="11" cy="11" r="1.2" fill="#7a7060"/></svg></button>
+    </div>
+    <div class="keyword-card card-motif">
+      <div class="card-illus" id="illus-motif">
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" id="svg-motif">
+          <circle cx="10" cy="10" r="3.5" fill="#4a7c6f" opacity="0.8"/>
+          <circle cx="26" cy="10" r="3.5" fill="#4a7c6f" opacity="0.8"/>
+          <circle cx="10" cy="26" r="3.5" fill="#4a7c6f" opacity="0.8"/>
+          <circle cx="26" cy="26" r="3.5" fill="#4a7c6f" opacity="0.8"/>
+          <circle cx="18" cy="18" r="3.5" fill="#4a7c6f" opacity="0.4"/>
+        </svg>
+      </div>
+      <div class="card-meta">
+        <div class="card-category">Motif</div>
+        <div class="card-value" id="val-motif">— — —</div>
+      </div>
+      <button class="reroll-btn" id="reroll-motif" onclick="rerollOne('motif')" title="Relancer"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="3" stroke="#7a7060" stroke-width="1.2" fill="none"/><circle cx="5" cy="5" r="1.2" fill="#7a7060"/><circle cx="11" cy="5" r="1.2" fill="#7a7060"/><circle cx="8" cy="8" r="1.2" fill="#7a7060"/><circle cx="5" cy="11" r="1.2" fill="#7a7060"/><circle cx="11" cy="11" r="1.2" fill="#7a7060"/></svg></button>
+    </div>
+    <div class="keyword-card card-effet">
+      <div class="card-illus" id="illus-effet">
+        <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" id="svg-effet">
+          <path d="M5 18 Q18 5 31 18" stroke="#7a4a8c" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <path d="M5 24 Q18 11 31 24" stroke="#7a4a8c" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.4"/>
+        </svg>
+      </div>
+      <div class="card-meta">
+        <div class="card-category">Effet</div>
+        <div class="card-value" id="val-effet">— — —</div>
+      </div>
+      <button class="reroll-btn" id="reroll-effet" onclick="rerollOne('effet')" title="Relancer"><svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="14" height="14" rx="3" stroke="#7a7060" stroke-width="1.2" fill="none"/><circle cx="5" cy="5" r="1.2" fill="#7a7060"/><circle cx="11" cy="5" r="1.2" fill="#7a7060"/><circle cx="8" cy="8" r="1.2" fill="#7a7060"/><circle cx="5" cy="11" r="1.2" fill="#7a7060"/><circle cx="11" cy="11" r="1.2" fill="#7a7060"/></svg></button>
+    </div>
+  </div>
+
+  <div class="btn-wrap">
+    <div class="loading-bar" id="loading-bar"></div>
+    <button class="btn-roll" id="roll-btn" onclick="roll()">
+      <span class="dice-icon">⚄</span>
+      <span id="btn-text">Lancer le tirage</span>
+    </button>
+  </div>
+
+  
+
+  <div class="history-section" id="history-section" style="display:none">
+    <div class="section-title">Tirages précédents</div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+
+  
+</div>
+
+<script>
+const ICONS = {
+  texture: {
+    'Flanelle':       `<rect x="4" y="4" width="28" height="28" rx="3" fill="none" stroke="#8b5e4a" stroke-width="1" opacity="0.2"/><line x1="4" y1="10" x2="32" y2="10" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="16" x2="32" y2="16" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="22" x2="32" y2="22" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="28" x2="32" y2="28" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/>`,
+    'Lin':            `<line x1="7"  y1="6" x2="7"  y2="30" stroke="#8b5e4a" stroke-width="1.3" stroke-linecap="round"/><line x1="13" y1="6" x2="13" y2="30" stroke="#8b5e4a" stroke-width="1.3" stroke-linecap="round"/><line x1="19" y1="6" x2="19" y2="30" stroke="#8b5e4a" stroke-width="1.3" stroke-linecap="round"/><line x1="25" y1="6" x2="25" y2="30" stroke="#8b5e4a" stroke-width="1.3" stroke-linecap="round"/><line x1="31" y1="6" x2="31" y2="30" stroke="#8b5e4a" stroke-width="1.3" stroke-linecap="round"/><line x1="4" y1="12" x2="32" y2="12" stroke="#8b5e4a" stroke-width="0.7" opacity="0.4" stroke-linecap="round"/><line x1="4" y1="21" x2="32" y2="21" stroke="#8b5e4a" stroke-width="0.7" opacity="0.4" stroke-linecap="round"/>`,
+    'Velours':        `<rect x="2" y="2" width="32" height="32" rx="3" fill="#8b5e4a" fill-opacity="0.13"/><circle cx="7"  cy="7"  r="1.8" fill="#8b5e4a" opacity="0.35"/><circle cx="14" cy="6"  r="1.5" fill="#8b5e4a" opacity="0.2"/><circle cx="21" cy="8"  r="1.8" fill="#8b5e4a" opacity="0.48"/><circle cx="28" cy="6"  r="1.5" fill="#8b5e4a" opacity="0.18"/><circle cx="10" cy="14" r="1.5" fill="#8b5e4a" opacity="0.25"/><circle cx="17" cy="15" r="1.8" fill="#8b5e4a" opacity="0.52"/><circle cx="24" cy="14" r="1.5" fill="#8b5e4a" opacity="0.2"/><circle cx="31" cy="15" r="1.8" fill="#8b5e4a" opacity="0.45"/><circle cx="7"  cy="22" r="1.8" fill="#8b5e4a" opacity="0.3"/><circle cx="14" cy="21" r="1.5" fill="#8b5e4a" opacity="0.48"/><circle cx="21" cy="22" r="1.8" fill="#8b5e4a" opacity="0.2"/><circle cx="28" cy="21" r="1.5" fill="#8b5e4a" opacity="0.52"/><circle cx="10" cy="29" r="1.5" fill="#8b5e4a" opacity="0.42"/><circle cx="17" cy="30" r="1.8" fill="#8b5e4a" opacity="0.22"/><circle cx="24" cy="29" r="1.5" fill="#8b5e4a" opacity="0.48"/><circle cx="31" cy="30" r="1.8" fill="#8b5e4a" opacity="0.18"/>`,
+    'Velours côtelé': `<line x1="7"  y1="6" x2="7"  y2="30" stroke="#8b5e4a" stroke-width="3" stroke-linecap="round"/><line x1="13" y1="6" x2="13" y2="30" stroke="#8b5e4a" stroke-width="3" stroke-linecap="round"/><line x1="19" y1="6" x2="19" y2="30" stroke="#8b5e4a" stroke-width="3" stroke-linecap="round"/><line x1="25" y1="6" x2="25" y2="30" stroke="#8b5e4a" stroke-width="3" stroke-linecap="round"/><line x1="31" y1="6" x2="31" y2="30" stroke="#8b5e4a" stroke-width="3" stroke-linecap="round"/>`,
+    'Tweed':          `<line x1="5" y1="9"  x2="31" y2="9"  stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="15" x2="31" y2="15" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="21" x2="31" y2="21" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="5" y1="27" x2="31" y2="27" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="9"  y1="5" x2="9"  y2="31" stroke="#8b5e4a" stroke-width="0.8" opacity="0.45" stroke-linecap="round"/><line x1="17" y1="5" x2="17" y2="31" stroke="#8b5e4a" stroke-width="0.8" opacity="0.45" stroke-linecap="round"/><line x1="25" y1="5" x2="25" y2="31" stroke="#8b5e4a" stroke-width="0.8" opacity="0.45" stroke-linecap="round"/>`,
+    'Denim':          `<line x1="0"  y1="36" x2="36" y2="0"  stroke="#8b5e4a" stroke-width="0.9" opacity="0.65"/><line x1="0"  y1="32" x2="32" y2="0"  stroke="#8b5e4a" stroke-width="0.4" opacity="0.2"/><line x1="0"  y1="28" x2="28" y2="0"  stroke="#8b5e4a" stroke-width="0.9" opacity="0.65"/><line x1="0"  y1="24" x2="24" y2="0"  stroke="#8b5e4a" stroke-width="0.4" opacity="0.2"/><line x1="0"  y1="20" x2="20" y2="0"  stroke="#8b5e4a" stroke-width="0.9" opacity="0.65"/><line x1="0"  y1="16" x2="16" y2="0"  stroke="#8b5e4a" stroke-width="0.4" opacity="0.2"/><line x1="0"  y1="12" x2="12" y2="0"  stroke="#8b5e4a" stroke-width="0.9" opacity="0.65"/><line x1="0"  y1="8"  x2="8"  y2="0"  stroke="#8b5e4a" stroke-width="0.4" opacity="0.2"/><line x1="0"  y1="4"  x2="4"  y2="0"  stroke="#8b5e4a" stroke-width="0.9" opacity="0.65"/><line x1="4"  y1="36" x2="36" y2="4"  stroke="#8b5e4a" stroke-width="0.4" opacity="0.2"/><line x1="8"  y1="36" x2="36" y2="8"  stroke="#8b5e4a" stroke-width="0.9" opacity="0.65"/><line x1="12" y1="36" x2="36" y2="12" stroke="#8b5e4a" stroke-width="0.4" opacity="0.2"/><line x1="16" y1="36" x2="36" y2="16" stroke="#8b5e4a" stroke-width="0.9" opacity="0.65"/><line x1="20" y1="36" x2="36" y2="20" stroke="#8b5e4a" stroke-width="0.4" opacity="0.2"/><line x1="24" y1="36" x2="36" y2="24" stroke="#8b5e4a" stroke-width="0.9" opacity="0.65"/><line x1="28" y1="36" x2="36" y2="28" stroke="#8b5e4a" stroke-width="0.4" opacity="0.2"/><line x1="32" y1="36" x2="36" y2="32" stroke="#8b5e4a" stroke-width="0.9" opacity="0.65"/><line x1="5"  y1="0" x2="5"  y2="36" stroke="#8b5e4a" stroke-width="0.35" opacity="0.12"/><line x1="10" y1="0" x2="10" y2="36" stroke="#8b5e4a" stroke-width="0.35" opacity="0.12"/><line x1="15" y1="0" x2="15" y2="36" stroke="#8b5e4a" stroke-width="0.35" opacity="0.12"/><line x1="20" y1="0" x2="20" y2="36" stroke="#8b5e4a" stroke-width="0.35" opacity="0.12"/><line x1="25" y1="0" x2="25" y2="36" stroke="#8b5e4a" stroke-width="0.35" opacity="0.12"/><line x1="30" y1="0" x2="30" y2="36" stroke="#8b5e4a" stroke-width="0.35" opacity="0.12"/>`,
+    'Cuir':           `<path d="M5 10 Q12 7 18 10 Q24 13 31 10" stroke="#8b5e4a" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M5 16 Q12 13 18 16 Q24 19 31 16" stroke="#8b5e4a" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M5 22 Q12 19 18 22 Q24 25 31 22" stroke="#8b5e4a" stroke-width="1.4" fill="none" stroke-linecap="round"/><path d="M5 28 Q12 25 18 28 Q24 31 31 28" stroke="#8b5e4a" stroke-width="1.3" fill="none" stroke-linecap="round" opacity="0.4"/>`,
+    'Daim':           `<rect x="2" y="2" width="32" height="32" rx="3" fill="#8b5e4a" fill-opacity="0.14"/><ellipse cx="10" cy="10" rx="22" ry="22" fill="#8b5e4a" fill-opacity="0.1"/><ellipse cx="10" cy="10" rx="14" ry="14" fill="#8b5e4a" fill-opacity="0.08"/><ellipse cx="28" cy="28" rx="22" ry="22" fill="#8b5e4a" fill-opacity="0.1"/><ellipse cx="28" cy="28" rx="14" ry="14" fill="#8b5e4a" fill-opacity="0.08"/><ellipse cx="28" cy="10" rx="16" ry="12" fill="#8b5e4a" fill-opacity="0.06"/>`,
+    'Soie':           `<path d="M4 16 Q10 6 18 16 Q26 26 32 16" stroke="#8b5e4a" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M4 22 Q10 12 18 22 Q26 32 32 22" stroke="#8b5e4a" stroke-width="0.8" fill="none" stroke-linecap="round" opacity="0.4"/>`,
+    'Crochet':        `<line x1="0" y1="2"  x2="36" y2="2"  stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="4"  x2="36" y2="4"  stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="6"  x2="36" y2="6"  stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="8"  x2="36" y2="8"  stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="10" x2="36" y2="10" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="12" x2="36" y2="12" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="14" x2="36" y2="14" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="16" x2="36" y2="16" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="18" x2="36" y2="18" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="20" x2="36" y2="20" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="22" x2="36" y2="22" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="24" x2="36" y2="24" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="26" x2="36" y2="26" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="28" x2="36" y2="28" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="30" x2="36" y2="30" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="32" x2="36" y2="32" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="0" y1="34" x2="36" y2="34" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="2"  y1="0" x2="2"  y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="4"  y1="0" x2="4"  y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="6"  y1="0" x2="6"  y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="8"  y1="0" x2="8"  y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="10" y1="0" x2="10" y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="12" y1="0" x2="12" y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="14" y1="0" x2="14" y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="16" y1="0" x2="16" y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="18" y1="0" x2="18" y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="20" y1="0" x2="20" y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="22" y1="0" x2="22" y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="24" y1="0" x2="24" y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="26" y1="0" x2="26" y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="28" y1="0" x2="28" y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="30" y1="0" x2="30" y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="32" y1="0" x2="32" y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><line x1="34" y1="0" x2="34" y2="36" stroke="#8b5e4a" stroke-width="0.3" opacity="0.22"/><rect x="16" y="2"  width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="10" y="4"  width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="22" y="4"  width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="14" y="6"  width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="16" y="6"  width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="18" y="6"  width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="14" y="8"  width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="16" y="8"  width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="18" y="8"  width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="10" y="10" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="22" y="10" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="16" y="12" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="16" y="14" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="16" y="16" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="16" y="18" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="16" y="20" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="16" y="22" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="16" y="24" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="16" y="26" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="16" y="28" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="16" y="30" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="10" y="16" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="12" y="16" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="14" y="16" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="10" y="18" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="12" y="18" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="20" y="24" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="22" y="24" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="24" y="24" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="22" y="26" width="2" height="2" fill="#8b5e4a" opacity="0.9"/><rect x="24" y="26" width="2" height="2" fill="#8b5e4a" opacity="0.9"/>`,
+    'Mailles':        `<ellipse cx="9"  cy="7"  rx="3.5" ry="5" stroke="#8b5e4a" stroke-width="1" fill="none" opacity="0.7"/><ellipse cx="18" cy="7"  rx="3.5" ry="5" stroke="#8b5e4a" stroke-width="1" fill="none" opacity="0.7"/><ellipse cx="27" cy="7"  rx="3.5" ry="5" stroke="#8b5e4a" stroke-width="1" fill="none" opacity="0.7"/><ellipse cx="9"  cy="18" rx="3.5" ry="5" stroke="#8b5e4a" stroke-width="1" fill="none" opacity="0.7"/><ellipse cx="18" cy="18" rx="3.5" ry="5" stroke="#8b5e4a" stroke-width="1" fill="none" opacity="0.7"/><ellipse cx="27" cy="18" rx="3.5" ry="5" stroke="#8b5e4a" stroke-width="1" fill="none" opacity="0.7"/><ellipse cx="9"  cy="29" rx="3.5" ry="5" stroke="#8b5e4a" stroke-width="1" fill="none" opacity="0.7"/><ellipse cx="18" cy="29" rx="3.5" ry="5" stroke="#8b5e4a" stroke-width="1" fill="none" opacity="0.7"/><ellipse cx="27" cy="29" rx="3.5" ry="5" stroke="#8b5e4a" stroke-width="1" fill="none" opacity="0.7"/>`,
+    'Mohair':         `<rect x="2" y="2" width="32" height="32" rx="4" fill="#8b5e4a" fill-opacity="0.15"/><circle cx="8"  cy="9"  r="0.7" fill="#8b5e4a" opacity="0.3"/><circle cx="14" cy="7"  r="0.5" fill="#8b5e4a" opacity="0.18"/><circle cx="20" cy="10" r="0.7" fill="#8b5e4a" opacity="0.28"/><circle cx="27" cy="8"  r="0.5" fill="#8b5e4a" opacity="0.2"/><circle cx="11" cy="17" r="0.5" fill="#8b5e4a" opacity="0.2"/><circle cx="18" cy="19" r="0.7" fill="#8b5e4a" opacity="0.3"/><circle cx="25" cy="16" r="0.5" fill="#8b5e4a" opacity="0.18"/><circle cx="7"  cy="27" r="0.7" fill="#8b5e4a" opacity="0.25"/><circle cx="15" cy="26" r="0.5" fill="#8b5e4a" opacity="0.18"/><circle cx="22" cy="28" r="0.7" fill="#8b5e4a" opacity="0.32"/><circle cx="29" cy="25" r="0.5" fill="#8b5e4a" opacity="0.2"/>`,
+    'Fourrure':       `<path d="M6  2  Q5  20 4  50"  stroke="#8b5e4a" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.65"/><path d="M11 2  Q10 20 8  50"  stroke="#8b5e4a" stroke-width="1"   stroke-linecap="round" fill="none" opacity="0.35"/><path d="M16 2  Q15 22 13 50"  stroke="#8b5e4a" stroke-width="3"   stroke-linecap="round" fill="none" opacity="0.7"/><path d="M21 2  Q20 18 19 50"  stroke="#8b5e4a" stroke-width="1.2" stroke-linecap="round" fill="none" opacity="0.4"/><path d="M26 2  Q26 22 25 50"  stroke="#8b5e4a" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6"/><path d="M31 2  Q31 20 30 50"  stroke="#8b5e4a" stroke-width="1"   stroke-linecap="round" fill="none" opacity="0.3"/><path d="M36 2  Q37 22 36 50"  stroke="#8b5e4a" stroke-width="3"   stroke-linecap="round" fill="none" opacity="0.65"/><path d="M41 2  Q42 20 42 50"  stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.42"/><path d="M46 2  Q48 22 48 50"  stroke="#8b5e4a" stroke-width="2"   stroke-linecap="round" fill="none" opacity="0.55"/>`,
+    'Polaire':        `<rect x="1" y="1" width="34" height="34" rx="2" fill="#8b5e4a" fill-opacity="0.07"/><path d="M4 7  Q6 3  9 7  Q11 10 8 12  Q5 11 4 7Z"  fill="#8b5e4a" fill-opacity="0.22"/><path d="M12 5 Q14 1 17 5 Q19 8 16 10 Q13 9 12 5Z" fill="#8b5e4a" fill-opacity="0.18"/><path d="M20 6 Q22 2 25 6 Q26 9 23 11 Q20 10 20 6Z" fill="#8b5e4a" fill-opacity="0.25"/><path d="M28 5 Q30 2 32 5 Q33 8 31 9 Q28 9 28 5Z" fill="#8b5e4a" fill-opacity="0.2"/><path d="M2 16 Q4 12 7 16 Q8 19 5 21 Q2 20 2 16Z" fill="#8b5e4a" fill-opacity="0.2"/><path d="M10 14 Q12 10 15 14 Q17 17 14 19 Q11 18 10 14Z" fill="#8b5e4a" fill-opacity="0.25"/><path d="M18 15 Q21 11 23 15 Q24 18 21 20 Q18 19 18 15Z" fill="#8b5e4a" fill-opacity="0.18"/><path d="M26 14 Q28 10 31 14 Q32 17 29 19 Q26 18 26 14Z" fill="#8b5e4a" fill-opacity="0.22"/><path d="M4 25 Q6 21 9 25 Q10 28 7 30 Q4 28 4 25Z" fill="#8b5e4a" fill-opacity="0.25"/><path d="M13 23 Q15 19 18 23 Q19 26 16 28 Q13 27 13 23Z" fill="#8b5e4a" fill-opacity="0.18"/><path d="M21 24 Q24 20 26 24 Q27 27 24 29 Q21 28 21 24Z" fill="#8b5e4a" fill-opacity="0.22"/><path d="M2 33 Q5 29 8 33 Q9 36 6 36 Q3 35 2 33Z" fill="#8b5e4a" fill-opacity="0.18"/><path d="M11 31 Q13 27 16 31 Q18 34 15 35 Q12 34 11 31Z" fill="#8b5e4a" fill-opacity="0.25"/>`,
+    'Toile':          `<line x1="4" y1="10" x2="32" y2="10" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="19" x2="32" y2="19" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="28" x2="32" y2="28" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="10" y1="4" x2="10" y2="32" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="19" y1="4" x2="19" y2="32" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="28" y1="4" x2="28" y2="32" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/>`,
+    'Mesh':           `<circle cx="9"  cy="9"  r="2.2" stroke="#8b5e4a" stroke-width="1.1" fill="none"/><circle cx="18" cy="9"  r="2.2" stroke="#8b5e4a" stroke-width="1.1" fill="none"/><circle cx="27" cy="9"  r="2.2" stroke="#8b5e4a" stroke-width="1.1" fill="none"/><circle cx="9"  cy="18" r="2.2" stroke="#8b5e4a" stroke-width="1.1" fill="none"/><circle cx="18" cy="18" r="2.2" stroke="#8b5e4a" stroke-width="1.1" fill="none"/><circle cx="27" cy="18" r="2.2" stroke="#8b5e4a" stroke-width="1.1" fill="none"/><circle cx="9"  cy="27" r="2.2" stroke="#8b5e4a" stroke-width="1.1" fill="none"/><circle cx="18" cy="27" r="2.2" stroke="#8b5e4a" stroke-width="1.1" fill="none"/><circle cx="27" cy="27" r="2.2" stroke="#8b5e4a" stroke-width="1.1" fill="none"/>`,
+    'Osier':          `<rect x="0"  y="0"  width="18" height="18" rx="1.5" fill="#8b5e4a" fill-opacity="0.28"/><rect x="20" y="0"  width="18" height="18" rx="1.5" fill="#8b5e4a" fill-opacity="0.28"/><rect x="0"  y="20" width="18" height="18" rx="1.5" fill="#8b5e4a" fill-opacity="0.28"/><rect x="20" y="20" width="18" height="18" rx="1.5" fill="#8b5e4a" fill-opacity="0.28"/><line x1="0" y1="6"  x2="18" y2="6"  stroke="#8b5e4a" stroke-width="1.2" opacity="0.55"/><line x1="0" y1="11" x2="18" y2="11" stroke="#8b5e4a" stroke-width="1.2" opacity="0.55"/><line x1="0" y1="16" x2="18" y2="16" stroke="#8b5e4a" stroke-width="1.2" opacity="0.55"/><line x1="20" y1="6"  x2="38" y2="6"  stroke="#8b5e4a" stroke-width="1.2" opacity="0.55"/><line x1="20" y1="11" x2="38" y2="11" stroke="#8b5e4a" stroke-width="1.2" opacity="0.55"/><line x1="20" y1="16" x2="38" y2="16" stroke="#8b5e4a" stroke-width="1.2" opacity="0.55"/><line x1="6"  y1="20" x2="6"  y2="38" stroke="#8b5e4a" stroke-width="1.2" opacity="0.6"/><line x1="11" y1="20" x2="11" y2="38" stroke="#8b5e4a" stroke-width="1.2" opacity="0.6"/><line x1="16" y1="20" x2="16" y2="38" stroke="#8b5e4a" stroke-width="1.2" opacity="0.6"/><line x1="26" y1="20" x2="26" y2="38" stroke="#8b5e4a" stroke-width="1.2" opacity="0.6"/><line x1="31" y1="20" x2="31" y2="38" stroke="#8b5e4a" stroke-width="1.2" opacity="0.6"/><line x1="36" y1="20" x2="36" y2="38" stroke="#8b5e4a" stroke-width="1.2" opacity="0.6"/><rect x="0"  y="0"  width="18" height="18" rx="1.5" fill="#8b5e4a" fill-opacity="0.1"/><rect x="20" y="20" width="18" height="18" rx="1.5" fill="#8b5e4a" fill-opacity="0.1"/>`,
+  },
+  motif: {
+    'Jacquard':       `<rect x="5"  y="5"  width="5" height="5" fill="#4a7c6f" opacity="0.85"/><rect x="15" y="5"  width="5" height="5" fill="#4a7c6f" opacity="0.35"/><rect x="25" y="5"  width="5" height="5" fill="#4a7c6f" opacity="0.85"/><rect x="10" y="10" width="5" height="5" fill="#4a7c6f" opacity="0.6"/><rect x="20" y="10" width="5" height="5" fill="#4a7c6f" opacity="0.6"/><rect x="5"  y="15" width="5" height="5" fill="#4a7c6f" opacity="0.35"/><rect x="15" y="15" width="5" height="5" fill="#4a7c6f" opacity="0.95"/><rect x="25" y="15" width="5" height="5" fill="#4a7c6f" opacity="0.35"/><rect x="10" y="20" width="5" height="5" fill="#4a7c6f" opacity="0.6"/><rect x="20" y="20" width="5" height="5" fill="#4a7c6f" opacity="0.6"/><rect x="5"  y="25" width="5" height="5" fill="#4a7c6f" opacity="0.85"/><rect x="15" y="25" width="5" height="5" fill="#4a7c6f" opacity="0.35"/><rect x="25" y="25" width="5" height="5" fill="#4a7c6f" opacity="0.85"/>`,
+    'Carreaux':       `<line x1="4" y1="14" x2="32" y2="14" stroke="#4a7c6f" stroke-width="1.5"/><line x1="4" y1="24" x2="32" y2="24" stroke="#4a7c6f" stroke-width="1.5"/><line x1="14" y1="4" x2="14" y2="32" stroke="#4a7c6f" stroke-width="1.5"/><line x1="24" y1="4" x2="24" y2="32" stroke="#4a7c6f" stroke-width="1.5"/>`,
+    'Vichy':          `<rect x="0" y="0" width="36" height="36" fill="#4a7c6f" fill-opacity="0.06"/><rect x="0"  y="0"  width="10" height="36" fill="#4a7c6f" fill-opacity="0.25"/><rect x="20" y="0"  width="10" height="36" fill="#4a7c6f" fill-opacity="0.25"/><rect x="0"  y="0"  width="36" height="10" fill="#4a7c6f" fill-opacity="0.25"/><rect x="0"  y="20" width="36" height="10" fill="#4a7c6f" fill-opacity="0.25"/><rect x="0"  y="0"  width="10" height="10" fill="#4a7c6f" fill-opacity="0.35"/><rect x="20" y="0"  width="10" height="10" fill="#4a7c6f" fill-opacity="0.35"/><rect x="0"  y="20" width="10" height="10" fill="#4a7c6f" fill-opacity="0.35"/><rect x="20" y="20" width="10" height="10" fill="#4a7c6f" fill-opacity="0.35"/>`,
+    'Tartan':         `<line x1="4" y1="10" x2="32" y2="10" stroke="#4a7c6f" stroke-width="3.5" opacity="0.8"/><line x1="4" y1="20" x2="32" y2="20" stroke="#4a7c6f" stroke-width="1.2" opacity="0.4"/><line x1="4" y1="28" x2="32" y2="28" stroke="#4a7c6f" stroke-width="3.5" opacity="0.8"/><line x1="10" y1="4" x2="10" y2="32" stroke="#4a7c6f" stroke-width="3.5" opacity="0.8"/><line x1="20" y1="4" x2="20" y2="32" stroke="#4a7c6f" stroke-width="1.2" opacity="0.4"/><line x1="28" y1="4" x2="28" y2="32" stroke="#4a7c6f" stroke-width="3.5" opacity="0.8"/>`,
+    'Rayures':        `<line x1="4"  y1="4" x2="4"  y2="32" stroke="#4a7c6f" stroke-width="3"/><line x1="11" y1="4" x2="11" y2="32" stroke="#4a7c6f" stroke-width="1"/><line x1="17" y1="4" x2="17" y2="32" stroke="#4a7c6f" stroke-width="3"/><line x1="24" y1="4" x2="24" y2="32" stroke="#4a7c6f" stroke-width="1"/><line x1="30" y1="4" x2="30" y2="32" stroke="#4a7c6f" stroke-width="3"/>`,
+    'Pois':           `<ellipse cx="9"  cy="8"  rx="4"   ry="4"   fill="#4a7c6f" opacity="0.9"/><ellipse cx="9"  cy="8"  rx="2.2" ry="2.2" fill="#4a7c6f" opacity="0.25"/><ellipse cx="22" cy="8"  rx="4"   ry="4"   fill="#4a7c6f" opacity="0.9"/><ellipse cx="22" cy="8"  rx="2.2" ry="2.2" fill="#4a7c6f" opacity="0.25"/><ellipse cx="15" cy="19" rx="4"   ry="4"   fill="#4a7c6f" opacity="0.9"/><ellipse cx="15" cy="19" rx="2.2" ry="2.2" fill="#4a7c6f" opacity="0.25"/><ellipse cx="28" cy="19" rx="4"   ry="4"   fill="#4a7c6f" opacity="0.9"/><ellipse cx="28" cy="19" rx="2.2" ry="2.2" fill="#4a7c6f" opacity="0.25"/><ellipse cx="9"  cy="30" rx="4"   ry="4"   fill="#4a7c6f" opacity="0.9"/><ellipse cx="9"  cy="30" rx="2.2" ry="2.2" fill="#4a7c6f" opacity="0.25"/><ellipse cx="22" cy="30" rx="4"   ry="4"   fill="#4a7c6f" opacity="0.9"/><ellipse cx="22" cy="30" rx="2.2" ry="2.2" fill="#4a7c6f" opacity="0.25"/>`,
+    'Graphique':      `<rect x="5" y="5" width="12" height="12" stroke="#4a7c6f" stroke-width="1.5" fill="none"/><rect x="19" y="5" width="12" height="12" fill="#4a7c6f" opacity="0.75"/><rect x="5" y="19" width="12" height="12" fill="#4a7c6f" opacity="0.75"/><rect x="19" y="19" width="12" height="12" stroke="#4a7c6f" stroke-width="1.5" fill="none"/>`,
+    'Léopard':        `<ellipse cx="11" cy="11" rx="4.5" ry="2.5" fill="#4a7c6f" opacity="0.72" transform="rotate(-25 11 11)"/><ellipse cx="25" cy="9"  rx="4"   ry="2.2" fill="#4a7c6f" opacity="0.72" transform="rotate(20 25 9)"/><ellipse cx="27" cy="24" rx="4.5" ry="2.5" fill="#4a7c6f" opacity="0.72" transform="rotate(-15 27 24)"/><ellipse cx="11" cy="26" rx="4"   ry="2.2" fill="#4a7c6f" opacity="0.72" transform="rotate(15 11 26)"/><ellipse cx="18" cy="18" rx="3"   ry="1.8" fill="#4a7c6f" opacity="0.35"/>`,
+    'Vache':          `<rect x="0" y="0" width="36" height="36" rx="2" fill="#4a7c6f" fill-opacity="0.08"/><path d="M0 2 Q4 0 9 2 Q14 4 16 9 Q18 14 14 18 Q10 21 5 19 Q0 16 0 9 Q0 5 0 2Z" fill="#4a7c6f" opacity="0.8"/><path d="M28 11 Q32 9 36 11 Q40 14 38 19 Q36 23 31 24 Q26 22 25 17 Q24 13 28 11Z" fill="#4a7c6f" opacity="0.8"/><path d="M20 3 Q24 1 26 5 Q27 9 24 11 Q20 12 18 8 Q17 5 20 3Z" fill="#4a7c6f" opacity="0.8"/><path d="M1 28 Q6 24 11 26 Q15 28 15 34 Q14 38 8 39 Q2 38 0 33 Q0 30 1 28Z" fill="#4a7c6f" opacity="0.8"/><path d="M22 23 Q26 21 28 25 Q29 29 25 30 Q21 30 20 26 Q19 23 22 23Z" fill="#4a7c6f" opacity="0.8"/><path d="M17 17 Q19 15 21 17 Q22 19 20 21 Q17 21 16 19 Q16 18 17 17Z" fill="#4a7c6f" opacity="0.8"/><path d="M30 28 Q33 26 35 29 Q36 32 33 34 Q30 34 28 31 Q28 29 30 28Z" fill="#4a7c6f" opacity="0.8"/><path d="M32 3 Q35 1 37 4 Q39 7 37 9 Q34 10 32 8 Q31 5 32 3Z" fill="#4a7c6f" opacity="0.8"/><path d="M0 20 Q3 18 6 19 Q9 21 8 25 Q6 27 2 26 Q-1 24 0 20Z" fill="#4a7c6f" opacity="0.8"/>`,
+    'Serpent':        `<rect x="3"  y="3"  width="8"  height="7"  rx="2" fill="#4a7c6f" fill-opacity="0.15" stroke="#4a7c6f" stroke-width="1"/><rect x="12" y="3"  width="6"  height="8"  rx="2" fill="#4a7c6f" fill-opacity="0.1"  stroke="#4a7c6f" stroke-width="1"/><rect x="19" y="3"  width="9"  height="6"  rx="2" fill="#4a7c6f" fill-opacity="0.18" stroke="#4a7c6f" stroke-width="1"/><rect x="29" y="3"  width="7"  height="8"  rx="2" fill="#4a7c6f" fill-opacity="0.12" stroke="#4a7c6f" stroke-width="1"/><rect x="3"  y="11" width="10" height="8"  rx="2" fill="#4a7c6f" fill-opacity="0.12" stroke="#4a7c6f" stroke-width="1"/><rect x="14" y="12" width="7"  height="7"  rx="2" fill="#4a7c6f" fill-opacity="0.18" stroke="#4a7c6f" stroke-width="1"/><rect x="22" y="10" width="9"  height="9"  rx="2" fill="#4a7c6f" fill-opacity="0.1"  stroke="#4a7c6f" stroke-width="1"/><rect x="32" y="12" width="8"  height="7"  rx="2" fill="#4a7c6f" fill-opacity="0.15" stroke="#4a7c6f" stroke-width="1"/><rect x="3"  y="20" width="8"  height="9"  rx="2" fill="#4a7c6f" fill-opacity="0.16" stroke="#4a7c6f" stroke-width="1"/><rect x="12" y="20" width="9"  height="8"  rx="2" fill="#4a7c6f" fill-opacity="0.11" stroke="#4a7c6f" stroke-width="1"/><rect x="22" y="20" width="7"  height="9"  rx="2" fill="#4a7c6f" fill-opacity="0.18" stroke="#4a7c6f" stroke-width="1"/><rect x="30" y="20" width="9"  height="8"  rx="2" fill="#4a7c6f" fill-opacity="0.13" stroke="#4a7c6f" stroke-width="1"/><rect x="3"  y="30" width="7"  height="8"  rx="2" fill="#4a7c6f" fill-opacity="0.13" stroke="#4a7c6f" stroke-width="1"/><rect x="11" y="30" width="10" height="7"  rx="2" fill="#4a7c6f" fill-opacity="0.17" stroke="#4a7c6f" stroke-width="1"/><rect x="22" y="29" width="8"  height="9"  rx="2" fill="#4a7c6f" fill-opacity="0.11" stroke="#4a7c6f" stroke-width="1"/><rect x="31" y="30" width="9"  height="8"  rx="2" fill="#4a7c6f" fill-opacity="0.15" stroke="#4a7c6f" stroke-width="1"/>`,
+    'Pied-de-poule':  `<path d="M9 9 L14 4 L19 9 L14 14Z" fill="#4a7c6f" opacity="0.8"/><path d="M22 9 L27 4 L32 9 L27 14Z" fill="#4a7c6f" opacity="0.8"/><path d="M15 16 L20 11 L25 16 L20 21Z" fill="#4a7c6f" opacity="0.35"/><path d="M2 16 L7 11 L12 16 L7 21Z"  fill="#4a7c6f" opacity="0.35"/><path d="M9 23 L14 18 L19 23 L14 28Z" fill="#4a7c6f" opacity="0.8"/><path d="M22 23 L27 18 L32 23 L27 28Z" fill="#4a7c6f" opacity="0.8"/>`,
+    'Smocks':        `<rect x="3" y="4"  width="30" height="7" rx="3" fill="#4a7c6f" fill-opacity="0.13" stroke="#4a7c6f" stroke-width="1.1"/><rect x="3" y="13" width="30" height="7" rx="3" fill="#4a7c6f" fill-opacity="0.2"  stroke="#4a7c6f" stroke-width="1.1"/><rect x="3" y="22" width="30" height="7" rx="3" fill="#4a7c6f" fill-opacity="0.13" stroke="#4a7c6f" stroke-width="1.1"/><rect x="3" y="31" width="30" height="7" rx="3" fill="#4a7c6f" fill-opacity="0.2"  stroke="#4a7c6f" stroke-width="1.1"/><line x1="3" y1="4"  x2="33" y2="4"  stroke="#4a7c6f" stroke-width="1.3" stroke-linecap="round"/><line x1="3" y1="13" x2="33" y2="13" stroke="#4a7c6f" stroke-width="1.3" stroke-linecap="round"/><line x1="3" y1="22" x2="33" y2="22" stroke="#4a7c6f" stroke-width="1.3" stroke-linecap="round"/><line x1="3" y1="31" x2="33" y2="31" stroke="#4a7c6f" stroke-width="1.3" stroke-linecap="round"/><line x1="13" y1="3" x2="13" y2="38" stroke="#4a7c6f" stroke-width="1.2" opacity="0.55" stroke-linecap="round"/><line x1="23" y1="3" x2="23" y2="38" stroke="#4a7c6f" stroke-width="1.2" opacity="0.55" stroke-linecap="round"/>`,
+    'Fleurs':         `<circle cx="18" cy="18" r="3.5" fill="#4a7c6f" opacity="0.9"/><ellipse cx="18" cy="9"  rx="3" ry="5" fill="#4a7c6f" opacity="0.35"/><ellipse cx="18" cy="27" rx="3" ry="5" fill="#4a7c6f" opacity="0.35"/><ellipse cx="9"  cy="18" rx="5" ry="3" fill="#4a7c6f" opacity="0.35"/><ellipse cx="27" cy="18" rx="5" ry="3" fill="#4a7c6f" opacity="0.35"/><ellipse cx="11" cy="11" rx="2.5" ry="4.5" fill="#4a7c6f" opacity="0.2" transform="rotate(-45 11 11)"/><ellipse cx="25" cy="25" rx="2.5" ry="4.5" fill="#4a7c6f" opacity="0.2" transform="rotate(-45 25 25)"/>`,
+    'Paisley':        `<path d="M18 30 Q10 25 9 17 Q8 9 14 6 Q18 4 22 7 Q27 11 25 19 Q23 25 18 30Z" fill="#4a7c6f" fill-opacity="0.12" stroke="#4a7c6f" stroke-width="1.3"/><path d="M18 26 Q12 22 12 16 Q12 11 16 9 Q20 8 22 11 Q24 15 22 20 Q21 23 18 26Z" fill="none" stroke="#4a7c6f" stroke-width="0.9" opacity="0.55"/><path d="M21 6 Q27 3 30 7 Q32 11 28 16" stroke="#4a7c6f" stroke-width="1.2" fill="none" stroke-linecap="round"/><circle cx="17" cy="22" r="1" fill="#4a7c6f" opacity="0.6"/>`,
+    'Abstrait':       `<path d="M5 21 Q9 7 16 14 Q23 21 29 9" stroke="#4a7c6f" stroke-width="1.6" fill="none" stroke-linecap="round"/><circle cx="9"  cy="27" r="4.5" stroke="#4a7c6f" stroke-width="1.3" fill="none"/><line x1="22" y1="23" x2="31" y2="30" stroke="#4a7c6f" stroke-width="1.6" stroke-linecap="round"/>`,
+    'Uni':            `<rect x="5" y="5" width="26" height="26" rx="3" fill="#4a7c6f" opacity="0.15"/><rect x="5" y="5" width="26" height="26" rx="3" stroke="#4a7c6f" stroke-width="1.5" fill="none"/>`,
+  },
+  effet: {
+    'Sequins':        `<circle cx="10" cy="10" r="3.5" fill="#7a4a8c" opacity="0.9"/><circle cx="22" cy="8"  r="2.5" fill="#7a4a8c" opacity="0.55"/><circle cx="29" cy="16" r="3"   fill="#7a4a8c" opacity="0.9"/><circle cx="6"  cy="21" r="2"   fill="#7a4a8c" opacity="0.55"/><circle cx="16" cy="21" r="4"   fill="#7a4a8c" opacity="0.9"/><circle cx="27" cy="27" r="2.5" fill="#7a4a8c" opacity="0.7"/><circle cx="10" cy="29" r="2"   fill="#7a4a8c" opacity="0.5"/><circle cx="21" cy="14" r="1.5" fill="#7a4a8c" opacity="0.4"/>`,
+    'Broderie':       `<path d="M9 18 Q13 9 18 18 Q23 27 27 18" stroke="#7a4a8c" stroke-width="1.4" fill="none" stroke-linecap="round"/><circle cx="9"  cy="18" r="2" fill="#7a4a8c"/><circle cx="18" cy="18" r="2" fill="#7a4a8c"/><circle cx="27" cy="18" r="2" fill="#7a4a8c"/><line x1="13" y1="9" x2="13" y2="27" stroke="#7a4a8c" stroke-width="0.8" stroke-linecap="round" opacity="0.35"/><line x1="23" y1="9" x2="23" y2="27" stroke="#7a4a8c" stroke-width="0.8" stroke-linecap="round" opacity="0.35"/>`,
+    'Dentelle':       `<line x1="0" y1="6"  x2="36" y2="6"  stroke="#7a4a8c" stroke-width="0.3" opacity="0.15"/><line x1="0" y1="12" x2="36" y2="12" stroke="#7a4a8c" stroke-width="0.3" opacity="0.15"/><line x1="0" y1="18" x2="36" y2="18" stroke="#7a4a8c" stroke-width="0.3" opacity="0.15"/><line x1="0" y1="24" x2="36" y2="24" stroke="#7a4a8c" stroke-width="0.3" opacity="0.15"/><line x1="0" y1="30" x2="36" y2="30" stroke="#7a4a8c" stroke-width="0.3" opacity="0.15"/><line x1="6"  y1="0" x2="6"  y2="36" stroke="#7a4a8c" stroke-width="0.3" opacity="0.15"/><line x1="12" y1="0" x2="12" y2="36" stroke="#7a4a8c" stroke-width="0.3" opacity="0.15"/><line x1="18" y1="0" x2="18" y2="36" stroke="#7a4a8c" stroke-width="0.3" opacity="0.15"/><line x1="24" y1="0" x2="24" y2="36" stroke="#7a4a8c" stroke-width="0.3" opacity="0.15"/><line x1="30" y1="0" x2="30" y2="36" stroke="#7a4a8c" stroke-width="0.3" opacity="0.15"/><path d="M8 36 Q12 26 8 16 Q4 8 10 2 Q14 -2 18 2 Q22 6 20 12 Q18 18 12 18 Q6 18 8 24" stroke="#7a4a8c" stroke-width="1" fill="none" opacity="0.8" stroke-linecap="round"/><circle cx="18" cy="2"  r="3"   stroke="#7a4a8c" stroke-width="0.8" fill="none" opacity="0.82"/><circle cx="18" cy="2"  r="1.2" fill="#7a4a8c" fill-opacity="0.3"/><ellipse cx="22" cy="2"  rx="1.8" ry="1.2" stroke="#7a4a8c" stroke-width="0.7" fill="none" opacity="0.65"/><ellipse cx="14" cy="2"  rx="1.8" ry="1.2" stroke="#7a4a8c" stroke-width="0.7" fill="none" opacity="0.65"/><ellipse cx="18" cy="6"  rx="1.2" ry="1.8" stroke="#7a4a8c" stroke-width="0.7" fill="none" opacity="0.65"/><ellipse cx="15" cy="6"  rx="1.5" ry="1.2" stroke="#7a4a8c" stroke-width="0.6" fill="none" opacity="0.5" transform="rotate(-30 15 6)"/><ellipse cx="21" cy="6"  rx="1.5" ry="1.2" stroke="#7a4a8c" stroke-width="0.6" fill="none" opacity="0.5" transform="rotate(30 21 6)"/><circle cx="10" cy="2"  r="1.8" stroke="#7a4a8c" stroke-width="0.7" fill="none" opacity="0.7"/><circle cx="10" cy="2"  r="0.7" fill="#7a4a8c" fill-opacity="0.3"/><path d="M8  14 Q5  11 8  9  Q11 11 10 15Z" fill="#7a4a8c" fill-opacity="0.4" stroke="#7a4a8c" stroke-width="0.6"/><path d="M12 14 Q15 11 14 9  Q11 11 10 15Z" fill="#7a4a8c" fill-opacity="0.3" stroke="#7a4a8c" stroke-width="0.6"/><path d="M8  30 Q5  27 8  25 Q11 27 10 31Z" fill="#7a4a8c" fill-opacity="0.38" stroke="#7a4a8c" stroke-width="0.6"/><circle cx="12" cy="18" r="2"   stroke="#7a4a8c" stroke-width="0.7" fill="none" opacity="0.7"/><circle cx="12" cy="18" r="0.8" fill="#7a4a8c" fill-opacity="0.3"/><ellipse cx="12" cy="14" rx="1" ry="1.6" stroke="#7a4a8c" stroke-width="0.7" fill="none" opacity="0.6"/><ellipse cx="16" cy="18" rx="1.6" ry="1"  stroke="#7a4a8c" stroke-width="0.7" fill="none" opacity="0.6"/>`,
+    'Nacre':          `<ellipse cx="18" cy="18" rx="13" ry="10" stroke="#7a4a8c" stroke-width="1.3" fill="none"/><ellipse cx="18" cy="18" rx="8"  ry="5.5" stroke="#7a4a8c" stroke-width="0.9" fill="none" opacity="0.5"/><ellipse cx="18" cy="18" rx="3.5" ry="2.2" fill="#7a4a8c" opacity="0.3"/>`,
+    'Métallique':     `<path d="M5 18 L13 7 L21 18 L29 7" stroke="#7a4a8c" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" fill="none"/><path d="M5 25 L13 14 L21 25 L29 14" stroke="#7a4a8c" stroke-width="0.9" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.4"/>`,
+    'Œillets':        `<circle cx="10" cy="18" r="5" stroke="#7a4a8c" stroke-width="1.3" fill="none"/><circle cx="10" cy="18" r="2" fill="#7a4a8c" opacity="0.35"/><circle cx="18" cy="18" r="5" stroke="#7a4a8c" stroke-width="1.3" fill="none"/><circle cx="18" cy="18" r="2" fill="#7a4a8c" opacity="0.35"/><circle cx="26" cy="18" r="5" stroke="#7a4a8c" stroke-width="1.3" fill="none"/><circle cx="26" cy="18" r="2" fill="#7a4a8c" opacity="0.35"/>`,
+    'Boutons':        `<circle cx="13" cy="13" r="9"   stroke="#7a4a8c" stroke-width="1.3" fill="none" opacity="0.85"/><circle cx="13" cy="13" r="6.5" stroke="#7a4a8c" stroke-width="0.6" fill="none" opacity="0.4"/><circle cx="11" cy="11" r="1.2" fill="#7a4a8c" opacity="0.9"/><circle cx="15" cy="11" r="1.2" fill="#7a4a8c" opacity="0.9"/><circle cx="11" cy="15" r="1.2" fill="#7a4a8c" opacity="0.9"/><circle cx="15" cy="15" r="1.2" fill="#7a4a8c" opacity="0.9"/><circle cx="27" cy="24" r="7"   stroke="#7a4a8c" stroke-width="1.3" fill="none" opacity="0.85"/><circle cx="27" cy="24" r="4.8" stroke="#7a4a8c" stroke-width="0.6" fill="none" opacity="0.4"/><circle cx="25.2" cy="22.2" r="0.9" fill="#7a4a8c" opacity="0.9"/><circle cx="28.8" cy="22.2" r="0.9" fill="#7a4a8c" opacity="0.9"/><circle cx="25.2" cy="25.8" r="0.9" fill="#7a4a8c" opacity="0.9"/><circle cx="28.8" cy="25.8" r="0.9" fill="#7a4a8c" opacity="0.9"/>`,
+    'Zip':            `<line x1="18" y1="2" x2="18" y2="34" stroke="#7a4a8c" stroke-width="2" stroke-linecap="round" opacity="0.85"/>`,
+    'Contrasté':      `<rect x="5" y="5" width="12" height="26" rx="2" fill="#7a4a8c" opacity="0.9"/><rect x="19" y="5" width="12" height="26" rx="2" fill="none" stroke="#7a4a8c" stroke-width="1.4"/>`,
+    'Low-contrast':   `<rect x="5" y="5" width="12" height="26" rx="2" fill="#7a4a8c" opacity="0.4"/><rect x="19" y="5" width="12" height="26" rx="2" fill="#7a4a8c" opacity="0.2"/>`,
+    'Transparent':    `<rect x="6" y="6" width="24" height="24" rx="3" stroke="#7a4a8c" stroke-width="1.3" fill="none" stroke-dasharray="3 2.5"/><rect x="11" y="11" width="14" height="14" rx="2" fill="#7a4a8c" opacity="0.15" stroke="#7a4a8c" stroke-width="1"/>`,
+    'Superposition':  `<rect x="4" y="13" width="18" height="18" rx="3" fill="#7a4a8c" opacity="0.35" stroke="#7a4a8c" stroke-width="1.2"/><rect x="14" y="5" width="18" height="18" rx="3" fill="#7a4a8c" opacity="0.75" stroke="#7a4a8c" stroke-width="1.2"/>`,
+    'Brillant':       `<path d="M18 4 L19.5 16.5 L32 18 L19.5 19.5 L18 32 L16.5 19.5 L4 18 L16.5 16.5 Z" fill="#7a4a8c" fill-opacity="0.2" stroke="#7a4a8c" stroke-width="1.2" stroke-linejoin="round"/><circle cx="18" cy="18" r="2.5" fill="#7a4a8c" opacity="0.55"/>`,
+    'Monochrome':     `<rect x="5" y="5" width="26" height="26" rx="3" fill="none" stroke="#7a4a8c" stroke-width="1.3"/><rect x="10" y="10" width="7" height="16" rx="1" fill="#7a4a8c" opacity="0.85"/><rect x="19" y="10" width="7" height="16" rx="1" fill="#7a4a8c" opacity="0.25"/>`,
+    'Asymétrique':    `<path d="M5 29 L5 7 L21 7 L29 17 L29 29 Z" stroke="#7a4a8c" stroke-width="1.4" fill="none" stroke-linejoin="round"/><line x1="5" y1="18" x2="25" y2="18" stroke="#7a4a8c" stroke-width="0.9" stroke-dasharray="2 2" opacity="0.45"/>`,
+    'Oversized':      `<path d="M7 12 Q18 7 29 12 L31 26 Q18 22 5 26 Z" fill="#7a4a8c" fill-opacity="0.1" stroke="#7a4a8c" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 18 Q18 14 26 18" stroke="#7a4a8c" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.5"/>`,
+    'Ajusté':         `<path d="M10 5 Q18 17 10 31" stroke="#7a4a8c" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M26 5 Q18 17 26 31" stroke="#7a4a8c" stroke-width="1.5" fill="none" stroke-linecap="round"/><ellipse cx="18" cy="18" rx="3" ry="1.5" fill="#7a4a8c" opacity="0.2"/>`,
+    'Colour block':   `<rect x="5"  y="5"  width="13" height="13" rx="2" fill="#7a4a8c" opacity="0.85"/><rect x="18" y="5"  width="13" height="13" rx="2" fill="#7a4a8c" opacity="0.3"/><rect x="5"  y="18" width="13" height="13" rx="2" fill="#7a4a8c" opacity="0.3"/><rect x="18" y="18" width="13" height="13" rx="2" fill="#7a4a8c" opacity="0.85"/>`,
+  }
+};
+
+function setIllus(cat, word) {
+  const el = document.getElementById('svg-' + cat);
+  if (!el) return;
+  const map = ICONS[cat];
+  el.innerHTML = map[word] || map[Object.keys(map)[0]];
+}
+
+const DATA = {
+  couleur: [
+    { name: 'Blanc neutre',    hex: '#f0eeea' },
+    { name: 'Blanc cassé',     hex: '#fffffa' },
+    { name: 'Crème',           hex: '#fdf6e3' },
+    { name: 'Sable',           hex: '#c8ad7f' },
+    { name: 'Camel',           hex: '#c19a6b' },
+    { name: 'Jaune',           hex: '#f5d000' },
+    { name: 'Mandarine',       hex: '#f47c38' },
+    { name: 'Orange vif',      hex: '#ff5e00' },
+    { name: 'Terracotta',      hex: '#c0643a' },
+    { name: 'Vieux rose',      hex: '#c47a8a' },
+    { name: 'Rose',            hex: '#f4a0b0' },
+    { name: 'Rouge',           hex: '#d42b2b' },
+    { name: 'Bordeaux',        hex: '#6e2030' },
+    { name: 'Prune',           hex: '#6a2a4a' },
+    { name: 'Bleu glacé',      hex: '#cde8f5' },
+    { name: 'Bleu ciel',       hex: '#6ab4e8' },
+    { name: 'Bleu électrique', hex: '#0047ff' },
+    { name: 'Bleu marine',     hex: '#152844' },
+    { name: 'Turquoise',       hex: '#00b5ad' },
+    { name: 'Vert clair',      hex: '#6abf69' },
+    { name: 'Vert foncé',      hex: '#1e4d2b' },
+    { name: 'Violet',          hex: '#7b2d8b' },
+    { name: 'Marron',          hex: '#6b3a2a' },
+    { name: 'Taupe',           hex: '#8b7d6b' },
+    { name: 'Kaki',            hex: '#6b7c4a' },
+    { name: 'Noir',            hex: '#111111' },
+    { name: 'Gris clair',      hex: '#c0bdb8' },
+    { name: 'Gris foncé',      hex: '#4a4845' },
+  ],
+  texture: ['Flanelle','Lin','Velours','Velours côtelé','Tweed','Denim','Cuir','Daim','Soie','Crochet','Mailles','Mohair','Fourrure','Polaire','Toile','Mesh','Osier'],
+  motif:   ['Jacquard','Carreaux','Vichy','Tartan','Rayures','Pois','Graphique','Léopard','Vache','Serpent','Pied-de-poule','Smocks','Fleurs','Paisley','Abstrait','Uni'],
+  effet:   ['Sequins','Broderie','Dentelle','Nacre','Métallique','Œillets','Boutons','Zip','Contrasté','Low-contrast','Transparent','Superposition','Brillant','Monochrome','Asymétrique','Oversized','Ajusté','Colour block'],
+};
+
+let last = { couleur: null, texture: null, motif: null, effet: null };
+const history = [];
+
+function pick(arr, last) {
+  let item;
+  do { item = arr[Math.floor(Math.random() * arr.length)]; }
+  while (item === last && arr.length > 1);
+  return item;
+}
+
+function animVal(id, val) {
+  const el = document.getElementById(id);
+  el.classList.remove('rolling'); void el.offsetWidth;
+  el.textContent = val;
+  el.classList.add('rolling');
+}
+
+async function roll() {
+  const btn = document.getElementById('roll-btn');
+  btn.disabled = true;
+  document.getElementById('btn-text').textContent = 'Tirage…';
+  const bar = document.getElementById('loading-bar');
+  bar.classList.remove('active'); void bar.offsetWidth; bar.classList.add('active');
+
+  let ticks = 0;
+  const totalTicks = 22;
+  await new Promise(resolve => {
+    const runTicker = () => {
+      const rc = DATA.couleur[Math.floor(Math.random()*DATA.couleur.length)];
+      document.getElementById('val-color-text').textContent = rc.name;
+      document.getElementById('swatch-circle').setAttribute('fill', rc.hex);
+      const rt = DATA.texture[Math.floor(Math.random()*DATA.texture.length)];
+      const rm = DATA.motif[Math.floor(Math.random()*DATA.motif.length)];
+      const re = DATA.effet[Math.floor(Math.random()*DATA.effet.length)];
+      document.getElementById('val-texture').textContent = rt;
+      document.getElementById('val-motif').textContent   = rm;
+      document.getElementById('val-effet').textContent   = re;
+      setIllus('texture', rt);
+      setIllus('motif',   rm);
+      setIllus('effet',   re);
+      playTick();
+      ticks++;
+      if (ticks < totalTicks) {
+        const progress = ticks / totalTicks;
+        const delay = 50 + Math.pow(progress, 2.2) * 200;
+        setTimeout(runTicker, delay);
+      } else {
+        resolve();
+      }
+    };
+    runTicker();
+  });
+
+  const color   = pick(DATA.couleur, last.couleur);
+  const texture = pick(DATA.texture, last.texture);
+  const motif   = pick(DATA.motif,   last.motif);
+  const effet   = pick(DATA.effet,   last.effet);
+  last = { couleur: color, texture, motif, effet };
+
+  document.getElementById('val-color-text').textContent = color.name;
+  const vcEl = document.getElementById('val-color');
+  vcEl.classList.remove('rolling'); void vcEl.offsetWidth; vcEl.classList.add('rolling');
+  
+  document.getElementById('swatch-circle').setAttribute('fill', color.hex);
+
+  // show reroll buttons after first roll
+  document.querySelectorAll('.reroll-btn').forEach(b => b.classList.add('visible'));
+
+  animVal('val-texture', texture);
+  animVal('val-motif', motif);
+  animVal('val-effet', effet);
+
+  setIllus('texture', texture);
+  setIllus('motif', motif);
+  setIllus('effet', effet);
+
+  playWin();
+  spawnSparkles();
+
+  addToHistory(color, texture, motif, effet);
+
+  bar.classList.remove('active');
+  btn.disabled = false;
+  document.getElementById('btn-text').textContent = 'Lancer le tirage';
+}
+
+function addToHistory(color, texture, motif, effet) {
+  history.unshift({ color, texture, motif, effet });
+  if (history.length > 5) history.pop();
+  const sec  = document.getElementById('history-section');
+  const list = document.getElementById('history-list');
+  if (history.length > 1) {
+    sec.style.display = 'block';
+    list.innerHTML = '';
+    history.slice(1).forEach((h, i) => {
+      const el = document.createElement('div');
+      el.className = 'history-item';
+      el.style.animationDelay = (i * 0.05) + 's';
+      el.innerHTML = `<span class="h-pill"><span class="h-dot" style="background:${h.color.hex}"></span>${h.color.name}</span><span class="h-pill">🧵 ${h.texture}</span><span class="h-pill">✦ ${h.motif}</span><span class="h-pill">⚡ ${h.effet}</span>`;
+      list.appendChild(el);
+    });
+  }
+}
+
+async function rerollOne(cat) {
+  const btn = document.getElementById('reroll-' + (cat === 'couleur' ? 'color' : cat));
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.4'; }
+
+  let ticks = 0;
+  const total = 16;
+
+  await new Promise(resolve => {
+    const runTicker = () => {
+      if (cat === 'couleur') {
+        const rc = DATA.couleur[Math.floor(Math.random()*DATA.couleur.length)];
+        document.getElementById('val-color-text').textContent = rc.name;
+        document.getElementById('swatch-circle').setAttribute('fill', rc.hex);
+      } else {
+        const arr = DATA[cat];
+        const rval = arr[Math.floor(Math.random()*arr.length)];
+        document.getElementById('val-' + cat).textContent = rval;
+        setIllus(cat, rval);
+      }
+      playTickHigh();
+      ticks++;
+      if (ticks < total) {
+        const progress = ticks / total;
+        const delay = 50 + Math.pow(progress, 2.2) * 200;
+        setTimeout(runTicker, delay);
+      } else {
+        resolve();
+      }
+    };
+    runTicker();
+  });
+
+  // final pick
+  if (cat === 'couleur') {
+    const color = pick(DATA.couleur, last.couleur);
+    last.couleur = color;
+    document.getElementById('val-color-text').textContent = color.name;
+    const el = document.getElementById('val-color');
+    el.classList.remove('rolling'); void el.offsetWidth; el.classList.add('rolling');
+    document.getElementById('swatch-circle').setAttribute('fill', color.hex);
+  } else {
+    const val = pick(DATA[cat], last[cat]);
+    last[cat] = val;
+    animVal('val-' + cat, val);
+    setIllus(cat, val);
+  }
+
+  playMiniWin();
+  const cardId = cat === 'couleur' ? 'card-color' : 'reroll-' + cat;
+  const targetCard = btn ? btn.closest('.keyword-card') : null;
+  if (targetCard) spawnSparklesOnCard(targetCard);
+  if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+}
+
+function createAudioContext() {
+  if (!window._audioCtx) window._audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return window._audioCtx;
+}
+
+function playTick() {
+  try {
+    const ctx = createAudioContext();
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.06, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      const t = i / ctx.sampleRate;
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 80) * 0.3
+               + Math.sin(2 * Math.PI * 900 * t) * Math.exp(-t * 120) * 0.15;
+    }
+    const src = ctx.createBufferSource();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1000;
+    filter.Q.value = 1.2;
+    src.buffer = buf;
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    src.start();
+  } catch(e) {}
+}
+
+function playTickHigh() {
+  try {
+    const ctx = createAudioContext();
+    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.05, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      const t = i / ctx.sampleRate;
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 100) * 0.2
+               + Math.sin(2 * Math.PI * 1800 * t) * Math.exp(-t * 150) * 0.12;
+    }
+    const src = ctx.createBufferSource();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 2000;
+    filter.Q.value = 1.5;
+    src.buffer = buf;
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    src.start();
+  } catch(e) {}
+}
+
+function playMiniWin() {
+  try {
+    const ctx = createAudioContext();
+    const notes = [1567, 2093];
+    notes.forEach((freq, i) => {
+      const t = ctx.currentTime + i * 0.07;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.05, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+      osc.start(t); osc.stop(t + 0.16);
+    });
+  } catch(e) {}
+}
+
+function spawnSparklesOnCard(card) {
+  for (let i = 0; i < 7; i++) {
+    const star = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    star.setAttribute('viewBox', '0 0 20 20');
+    star.style.cssText = `
+      position:absolute; width:${8 + Math.random()*12}px; height:${8 + Math.random()*12}px;
+      left:${Math.random()*90}%; top:${Math.random()*80}%;
+      pointer-events:none; z-index:10;
+      animation: sparkle-pop 0.65s ease forwards;
+      animation-delay:${i * 0.06}s;
+      opacity:0;
+    `;
+    const colors = ['#e8a0bf','#a78bca','#f0c0d4','#f04400','#ffd700'];
+    const color = colors[Math.floor(Math.random()*colors.length)];
+    star.innerHTML = `<path d="M10 1 L11.5 8 L18 10 L11.5 12 L10 19 L8.5 12 L2 10 L8.5 8 Z" fill="${color}"/>`;
+    card.style.overflow = 'visible';
+    card.appendChild(star);
+    setTimeout(() => star.remove(), 1000 + i * 60);
+  }
+}
+
+function playWin() {
+  try {
+    const ctx = createAudioContext();
+    const sparkNotes = [1046, 1318, 1567, 1760, 2093, 1318, 1760, 1046, 2093, 1567];
+    sparkNotes.forEach((freq, i) => {
+      const t = ctx.currentTime + i * 0.055 + Math.random() * 0.02;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      osc.frequency.linearRampToValueAtTime(freq * 1.04, t + 0.08);
+      gain.gain.setValueAtTime(0, t);
+      gain.gain.linearRampToValueAtTime(0.06, t + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      osc.start(t); osc.stop(t + 0.2);
+    });
+  } catch(e) {}
+}
+
+function spawnSparkles() {
+  const cards = document.querySelectorAll('.keyword-card');
+  cards.forEach((card, ci) => {
+    for (let i = 0; i < 6; i++) {
+      const star = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      star.setAttribute('viewBox', '0 0 20 20');
+      star.style.cssText = `
+        position:absolute; width:${10 + Math.random()*14}px; height:${10 + Math.random()*14}px;
+        left:${Math.random()*90}%; top:${Math.random()*80}%;
+        pointer-events:none; z-index:10;
+        animation: sparkle-pop 0.7s ease forwards;
+        animation-delay:${ci * 0.06 + i * 0.07}s;
+        opacity:0;
+      `;
+      const colors = ['#e8a0bf','#a78bca','#f0c0d4','#f04400','#ffd700'];
+      const color = colors[Math.floor(Math.random()*colors.length)];
+      star.innerHTML = `<path d="M10 1 L11.5 8 L18 10 L11.5 12 L10 19 L8.5 12 L2 10 L8.5 8 Z" fill="${color}"/>`;
+      card.style.position = 'relative';
+      card.style.overflow = 'visible';
+      card.appendChild(star);
+      setTimeout(() => star.remove(), 1200 + ci * 60 + i * 70);
+    }
+  });
+}
+
+function copyResult() {
+  const text = document.getElementById('result-text').innerText;
+  const kw = `${last.couleur?.name} · ${last.texture} · ${last.motif} · ${last.effet}\n\n${text}`;
+  navigator.clipboard.writeText(kw).catch(() => {});
+  document.getElementById('copy-label').textContent = 'Copié !';
+  document.getElementById('copy-icon').textContent  = '✓';
+  setTimeout(() => { document.getElementById('copy-label').textContent = 'Copier'; document.getElementById('copy-icon').textContent = '📋'; }, 1800);
+}
+
+let panelOpen = false;
+function togglePanel() {
+  panelOpen = !panelOpen;
+  document.getElementById('customize-panel').classList.toggle('open', panelOpen);
+  document.getElementById('chevron').classList.toggle('open', panelOpen);
+  if (panelOpen) renderAllChips();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', ['couleur','texture','motif','effet'][i] === tab));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  renderChips(tab);
+}
+
+function renderAllChips() { ['couleur','texture','motif','effet'].forEach(renderChips); }
+
+function renderChips(cat) {
+  const container = document.getElementById('chips-' + cat);
+  container.innerHTML = '';
+  DATA[cat].forEach((item, i) => {
+    const name = cat === 'couleur' ? item.name : item;
+    const hex  = cat === 'couleur' ? item.hex  : null;
+    const chip = document.createElement('span');
+    chip.className = 'word-chip';
+    chip.innerHTML = (hex ? `<span class="chip-dot" style="background:${hex}"></span>` : '') + escHtml(name) + `<button class="del" onclick="removeWord('${cat}',${i})">×</button>`;
+    container.appendChild(chip);
+  });
+}
+
+function removeWord(cat, idx) { DATA[cat].splice(idx, 1); renderChips(cat); }
+
+function addWord(cat) {
+  if (cat === 'couleur') {
+    const name = document.getElementById('add-couleur-name').value.trim();
+    const hex  = document.getElementById('add-couleur-hex').value.trim() || '#888888';
+    if (!name) return;
+    DATA.couleur.push({ name, hex });
+    document.getElementById('add-couleur-name').value = '';
+    document.getElementById('add-couleur-hex').value  = '';
+    document.getElementById('hex-preview').style.background = '';
+  } else {
+    const input = document.getElementById('add-' + cat);
+    const val = input.value.trim();
+    if (!val) return;
+    DATA[cat].push(val);
+    input.value = '';
+  }
+  renderChips(cat);
+}
+
+function previewHex(input) {
+  const val = input.value.trim();
+  if (/^#[0-9a-fA-F]{3,6}$/.test(val)) document.getElementById('hex-preview').style.background = val;
+}
+
+['add-texture','add-motif','add-effet'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') addWord(id.replace('add-','')); });
+});
+document.getElementById('add-couleur-name')?.addEventListener('keydown', e => { if (e.key === 'Enter') addWord('couleur'); });
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>
