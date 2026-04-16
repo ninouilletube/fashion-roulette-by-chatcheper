@@ -121,7 +121,12 @@ h1 span { display: block; color: var(--lavender); font-style: italic; font-weigh
 .deco-num { position: absolute; font-family: 'Playfair Display', serif; font-size: 8rem; font-weight: 700; color: var(--cream2); line-height: 1; pointer-events: none; user-select: none; z-index: -1; }
 .deco-left { left: -10px; top: 130px; }
 .deco-right { right: -10px; bottom: 220px; opacity: 0.5; }
+.counter-wrap { width: 100%; max-width: 500px; margin-top: 22px; text-align: center; }
+.counter-label { font-family: 'Unbounded', sans-serif; font-size: 8px; font-weight: 400; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.counter-value { font-family: 'Playfair Display', serif; font-size: 2.4rem; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1; }
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 </head>
 <body>
 <div class="page">
@@ -214,6 +219,11 @@ h1 span { display: block; color: var(--lavender); font-style: italic; font-weigh
 
   
 
+  <div class="counter-wrap">
+    <div class="counter-label">✦ Tirages effectués</div>
+    <div class="counter-value" id="counter-value">—</div>
+  </div>
+
   <div class="history-section" id="history-section" style="display:none">
     <div class="section-title">Tirages précédents</div>
     <div class="history-list" id="history-list"></div>
@@ -223,6 +233,25 @@ h1 span { display: block; color: var(--lavender); font-style: italic; font-weigh
 </div>
 
 <script>
+// Firebase — compteur de tirages
+firebase.initializeApp({
+  apiKey: "AIzaSyA0jjjHlodH2NsxrqT4oM0UzaZziQM1bsE",
+  authDomain: "fashion-roulette-5a0e0.firebaseapp.com",
+  projectId: "fashion-roulette-5a0e0",
+  storageBucket: "fashion-roulette-5a0e0.firebasestorage.app",
+  messagingSenderId: "1017188544456",
+  appId: "1:1017188544456:web:3d9cf980590792a5cd9afd",
+  databaseURL: "https://fashion-roulette-5a0e0-default-rtdb.europe-west1.firebasedatabase.app"
+});
+const tiragesRef = firebase.database().ref('tirages');
+tiragesRef.on('value', snap => {
+  const el = document.getElementById('counter-value');
+  if (el) el.textContent = (snap.val() || 0).toLocaleString('fr-FR');
+});
+function incrementTirages() {
+  tiragesRef.transaction(n => (n || 0) + 1);
+}
+
 const ICONS = {
   texture: {
     'Flanelle':       `<rect x="4" y="4" width="28" height="28" rx="3" fill="none" stroke="#8b5e4a" stroke-width="1" opacity="0.2"/><line x1="4" y1="10" x2="32" y2="10" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="16" x2="32" y2="16" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="22" x2="32" y2="22" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/><line x1="4" y1="28" x2="32" y2="28" stroke="#8b5e4a" stroke-width="1.5" stroke-linecap="round"/>`,
@@ -406,6 +435,7 @@ async function roll() {
   spawnSparkles();
 
   addToHistory(color, texture, motif, effet);
+  incrementTirages();
 
   bar.classList.remove('active');
   btn.disabled = false;
